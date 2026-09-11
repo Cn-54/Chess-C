@@ -6,36 +6,39 @@
 
 // HELPERS
 void init_board(Game *game){
-    game->board[0][0] = BLACK_ROOK;
-    game->board[0][7] = BLACK_ROOK;
-
-    game->board[0][1] = BLACK_KNIGHT;
-    game->board[0][6] = BLACK_KNIGHT;
-
-    game->board[0][2] = BLACK_BISHOP;
-    game->board[0][5] = BLACK_BISHOP;
-
-    game->board[0][3] = BLACK_QUEEN;
-    game->board[0][4] = BLACK_KING;
-
-    for(size_t i = 0;i < 8; i++){
-        game->board[1][i] = BLACK_PAWN ;
+    // Clear the entire board
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
+            game->board[y][x] = EMPTY;
+        }
     }
 
-    game->board[7][7] = WHITE_ROOK;
+    // Black pieces
+    game->board[0][0] = BLACK_ROOK;
+    game->board[0][1] = BLACK_KNIGHT;
+    game->board[0][2] = BLACK_BISHOP;
+    game->board[0][3] = BLACK_QUEEN;
+    game->board[0][4] = BLACK_KING;
+    game->board[0][5] = BLACK_BISHOP;
+    game->board[0][6] = BLACK_KNIGHT;
+    game->board[0][7] = BLACK_ROOK;
+
+    for (int x = 0; x < 8; x++) {
+        game->board[1][x] = BLACK_PAWN;
+    }
+
+    // White pieces
     game->board[7][0] = WHITE_ROOK;
-
     game->board[7][1] = WHITE_KNIGHT;
-    game->board[7][6] = WHITE_KNIGHT;
-
     game->board[7][2] = WHITE_BISHOP;
-    game->board[7][5] = WHITE_BISHOP;
-
     game->board[7][3] = WHITE_QUEEN;
     game->board[7][4] = WHITE_KING;
+    game->board[7][5] = WHITE_BISHOP;
+    game->board[7][6] = WHITE_KNIGHT;
+    game->board[7][7] = WHITE_ROOK;
 
-    for(size_t i = 0;i < 8; i++){
-        game->board[6][i] = WHITE_PAWN ;
+    for (int x = 0; x < 8; x++) {
+        game->board[6][x] = WHITE_PAWN;
     }
 }
 
@@ -345,16 +348,21 @@ static bool isChecked(Game *game, Colour colour){ // finds the given colours kin
 
 // HELPERS END
 
+void Reset_game(Game *game){
+    game->turn = COLOUR_WHITE;
+    game->state = GAME_IN_PROGRESS;
+    game->move_num = 0;
+
+    init_board(game);
+}
+
 Game *Create_Game(void){
     Game *game = calloc(1, sizeof(Game));
 
     if (game == NULL)
         return NULL;
 
-    game->turn = COLOUR_WHITE;
-    game->state = GAME_IN_PROGRESS;
-
-    init_board(game);
+    Reset_game(game);
 
     return game;
 }
@@ -400,7 +408,8 @@ MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont
             if (!islegalmove(game, move))
                 continue;
 
-            Make_Move(game, move);
+            if (!Make_Move(game, move))
+                continue;
 
             if (!isChecked(game, original_turn)) {
                 legal_moves.moves[legal_moves.count] = move;

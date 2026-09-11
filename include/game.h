@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define MAX_MOVE_HISTORY 100
+#define MAX_MOVE_HISTORY 1024
 
 typedef enum {
     EMPTY,
@@ -67,6 +67,7 @@ typedef struct {
 Game *Create_Game(void);
 void Destroy_Game(Game *game);
 void init_board(Game *game);
+void Reset_game(Game *game);
 bool Make_Move(Game *game, Move move);
 void Undo_Move(Game *game);
 MoveList GenerateMoves(Game *game);

@@ -58,8 +58,6 @@ static void handle_position(Game *game, char *input){
 
     if (strcmp(token, "startpos") == 0) {
 
-        init_board(game);
-
         token = strtok(NULL, " \n");
 
         if (token == NULL)
@@ -99,10 +97,11 @@ void UCI_Loop(Game *game){
         }
 
         else if (strcmp(input, "ucinewgame\n") == 0) {
-            init_board(game);
+            Reset_game(game);
         }
 
         else if (strncmp(input, "position", 8) == 0) {
+            Reset_game(game);
             handle_position(game, input);
         }
         else if (strncmp(input, "go", 2) == 0) {
