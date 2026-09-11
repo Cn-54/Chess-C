@@ -252,11 +252,11 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
         int maxEval = INT_MIN;
 
-        for (size_t i = 0; i < moves.count; i++){
+        for (size_t i = 0; i < moves.count; i++) {
 
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, depth - 1, alpha, beta, true);
+            int score = minmax(game, depth - 1, alpha, beta, false);
 
             int repetitions = isRepetition(game);
 
@@ -267,7 +267,7 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
             maxEval = max(maxEval, score);
             alpha = max(alpha, score);
 
-            if (beta <= alpha){
+            if (beta <= alpha) {
                 break;
             }
         }
@@ -286,22 +286,22 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
         int minEval = INT_MAX;
 
-        for (size_t i = 0; i < moves.count; i++){
+        for (size_t i = 0; i < moves.count; i++) {
 
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, depth - 1, alpha, beta, false);
+            int score = minmax(game, depth - 1, alpha, beta, true);
 
             int repetitions = isRepetition(game);
 
             Undo_Move(game);
 
-            score += repetitions * 50;
+            score -= repetitions * 50;
 
             minEval = min(minEval, score);
             beta = min(beta, score);
 
-            if (beta <= alpha){
+            if (beta <= alpha) {
                 break;
             }
         }
