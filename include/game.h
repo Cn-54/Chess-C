@@ -52,6 +52,7 @@ typedef struct {
 
 typedef struct {
     Move move;
+    Piece moved_piece;
     Piece captured_piece;
     Colour previous_turn;
 } MoveHistory;

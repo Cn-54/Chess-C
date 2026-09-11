@@ -293,51 +293,43 @@ static bool recordHistory(Game *game, Move move){
     if (game->move_num >= MAX_MOVE_HISTORY)
         return false;
 
-    Piece piece = game->board[move.from / 8][move.from % 8];
-    Piece captured_piece = game->board[move.to / 8][move.to % 8];
+    Piece original_piece =
+        game->board[move.from / 8][move.from % 8];
 
-    if (move.promotion != PROMOTE_NONE) { // promotions
+    Piece piece = original_piece;
+
+    Piece captured_piece =
+        game->board[move.to / 8][move.to % 8];
+
+    // Save ORIGINAL piece
+    game->history[game->move_num].move = move;
+    game->history[game->move_num].moved_piece = original_piece;
+    game->history[game->move_num].captured_piece = captured_piece;
+    game->history[game->move_num].previous_turn = game->turn;
+
+    // Apply promotion
+    if (move.promotion != PROMOTE_NONE) {
+
         if (piece == WHITE_PAWN) {
             switch (move.promotion) {
-                case PROMOTE_QUEEN:
-                    piece = WHITE_QUEEN;
-                    break;
-                case PROMOTE_ROOK:
-                    piece = WHITE_ROOK;
-                    break;
-                case PROMOTE_BISHOP:
-                    piece = WHITE_BISHOP;
-                    break;
-                case PROMOTE_KNIGHT:
-                    piece = WHITE_KNIGHT;
-                    break;
-                default:
-                    break;
+                case PROMOTE_QUEEN:  piece = WHITE_QUEEN;  break;
+                case PROMOTE_ROOK:   piece = WHITE_ROOK;   break;
+                case PROMOTE_BISHOP: piece = WHITE_BISHOP; break;
+                case PROMOTE_KNIGHT: piece = WHITE_KNIGHT; break;
+                default: break;
             }
         }
+
         else if (piece == BLACK_PAWN) {
             switch (move.promotion) {
-                case PROMOTE_QUEEN:
-                    piece = BLACK_QUEEN;
-                    break;
-                case PROMOTE_ROOK:
-                    piece = BLACK_ROOK;
-                    break;
-                case PROMOTE_BISHOP:
-                    piece = BLACK_BISHOP;
-                    break;
-                case PROMOTE_KNIGHT:
-                    piece = BLACK_KNIGHT;
-                    break;
-                default:
-                    break;
+                case PROMOTE_QUEEN:  piece = BLACK_QUEEN;  break;
+                case PROMOTE_ROOK:   piece = BLACK_ROOK;   break;
+                case PROMOTE_BISHOP: piece = BLACK_BISHOP; break;
+                case PROMOTE_KNIGHT: piece = BLACK_KNIGHT; break;
+                default: break;
             }
         }
     }
-
-    game->history[game->move_num].move = move;
-    game->history[game->move_num].captured_piece = captured_piece;
-    game->history[game->move_num].previous_turn = game->turn;
 
     game->board[move.to / 8][move.to % 8] = piece;
     game->board[move.from / 8][move.from % 8] = EMPTY;
@@ -419,18 +411,16 @@ bool Make_Move(Game *game, Move move){
 }
 
 void Undo_Move(Game *game){
-    MoveHistory history = game->history[game->move_num - 1]; // grabs the last history of the last move
-    Move move = history.move; // grabs the last move
+    MoveHistory history = game->history[game->move_num - 1];
+    Move move = history.move;
 
-    
-    Piece piece = game->board[move.to / 8][move.to % 8]; // grabs the peice mobed
+    // Restore the original piece, not the promoted piece
+    game->board[move.from / 8][move.from % 8] = history.moved_piece;
 
-    // undos the move
-    game->board[move.from / 8][move.from % 8] = piece;
+    // Restore whatever was captured
     game->board[move.to / 8][move.to % 8] = history.captured_piece;
 
     game->turn = history.previous_turn;
-
     game->move_num--;
 }
 
