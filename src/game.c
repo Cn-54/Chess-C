@@ -365,7 +365,7 @@ static bool isSquareAttacked(Game *game, int target, Colour attacker){ // checks
     return false;
 }
 
-static bool isChecked(Game *game, Colour colour){ // finds the given colours king and checks wether its square is being attacked
+bool isChecked(Game *game, Colour colour){ // finds the given colours king and checks wether its square is being attacked
     Piece king = (colour == COLOUR_WHITE) ? WHITE_KING : BLACK_KING;
     for (int square = 0; square < 64; square++) {
         if (game->board[square / 8][square % 8] == king) {

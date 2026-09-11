@@ -80,6 +80,7 @@ void Reset_game(Game *game);
 bool Make_Move(Game *game, Move move);
 void Undo_Move(Game *game);
 MoveList GenerateMoves(Game *game);
+bool isChecked(Game *game, Colour colour);
 
 
 #endif
