@@ -307,6 +307,42 @@ static bool recordHistory(Game *game, Move move){
     return true;
 }
 
+static bool isSquareAttacked(Game *game, int target, Colour attacker){ // checks if the attacker can move a piece from its current square to the target square
+    for (int from = 0; from < 64; from++) {
+
+        Piece piece = game->board[from / 8][from % 8];
+
+        if (piece_colour(piece) != attacker)
+            continue;
+
+        Move move = { .from = from, .to = target}; // construct the move
+
+        Colour previous_turn = game->turn;
+        game->turn = attacker;
+
+        if (islegalmove(game, move)) {
+            game->turn = previous_turn;
+            return true;
+        }
+
+        game->turn = previous_turn;
+    }
+
+    return false;
+}
+
+static bool isChecked(Game *game, Colour colour){ // finds the given colours king and checks wether its square is being attacked
+    Piece king = (colour == COLOUR_WHITE) ? WHITE_KING : BLACK_KING;
+    for (int square = 0; square < 64; square++) {
+        if (game->board[square / 8][square % 8] == king) {
+            Colour attacker = (colour == COLOUR_WHITE) ? COLOUR_BLACK : COLOUR_WHITE;
+            return isSquareAttacked(game, square, attacker);
+        }
+    }
+
+    return false;
+}
+
 // HELPERS END
 
 Game *Create_Game(void){
@@ -352,3 +388,4 @@ void Undo_Move(Game *game){
 }
 
 // TODO: Add legal move generation to be passed to the engine
+
