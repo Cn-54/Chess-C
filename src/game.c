@@ -257,7 +257,6 @@ static bool islegalmove(Game *game, Move move){
     if (target != EMPTY && (piece_colour(piece) == piece_colour(target))) return false; // cannot capture own piece
 
     // peice movement logic
-    // TODO: Add logic to determine legal moves here
     switch (piece) {
         case BLACK_PAWN:
         case WHITE_PAWN:
