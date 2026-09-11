@@ -260,8 +260,7 @@ static bool islegalmove(Game *game, Move move){
     switch (piece) {
         case BLACK_PAWN:
         case WHITE_PAWN:
-            // TODO: Add pawnMovementChecker
-            return false;
+            return pawnMovementChecker(game,move);
 
         case BLACK_ROOK:
         case WHITE_ROOK:
