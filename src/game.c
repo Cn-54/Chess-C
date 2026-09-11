@@ -37,7 +37,13 @@ static void init_board(Game *game){
     }
 }
 
-static bool islegalmove(Game *game, Move move);
+static bool islegalmove(Game *game, Move move){
+    if(!(move.from <= 63  && move.to <= 63)) return false;
+
+    // TODO:
+    // add logic to determine legal moves here
+    return true;
+}
 
 
 Game *Create_Game(void){
@@ -64,7 +70,7 @@ bool Make_Move(Game *game, Move move)
         return false;
     }
 
-    Piece piece = game->board[move.from / 8][move.from % 8];
+    Piece piece = game->board[move.from / 8][move.from % 8]; // from and too stored as an 8 bit num 0-63 so /8 and %8 are for the x and y
 
     game->board[move.to / 8][move.to % 8] = piece;
     game->board[move.from / 8][move.from % 8] = EMPTY;
