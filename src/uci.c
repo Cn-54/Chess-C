@@ -30,20 +30,50 @@ static void handle_go(Game *game){
 
     int from_x = move.from % 8;
     int from_y = move.from / 8;
-
     int to_x = move.to % 8;
     int to_y = move.to / 8;
 
     // converts game.c format to chess notation
     char from_file = 'a' + from_x;
     char from_rank = '8' - from_y;
-
     char to_file = 'a' + to_x;
     char to_rank = '8' - to_y;
 
-    printf("bestmove %c%c%c%c\n",
-           from_file, from_rank,
-           to_file, to_rank);
+    char promotion = '\0';
+
+    switch (move.promotion) { // promotion handling with the engine move 
+        case PROMOTE_QUEEN:
+            promotion = 'q';
+            break;
+
+        case PROMOTE_ROOK:
+            promotion = 'r';
+            break;
+
+        case PROMOTE_BISHOP:
+            promotion = 'b';
+            break;
+
+        case PROMOTE_KNIGHT:
+            promotion = 'n';
+            break;
+
+        case PROMOTE_NONE:
+        default:
+            break;
+    }
+
+    if (promotion != '\0') {
+        printf("bestmove %c%c%c%c%c\n",
+               from_file, from_rank,
+               to_file, to_rank,
+               promotion);
+    }
+    else {
+        printf("bestmove %c%c%c%c\n",
+               from_file, from_rank,
+               to_file, to_rank);
+    }
 
     fflush(stdout);
 }
