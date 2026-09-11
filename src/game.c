@@ -186,6 +186,20 @@ static bool queenMovementChecker(Game *game, Move move){
     // basically a bishop and rook merged
 }
 
+static bool kingMovementChecker(Move move){
+    int from_y = move.from / 8;
+    int from_x = move.from % 8;
+
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    int distX = abs(to_x - from_x);
+    int distY = abs(to_y - from_y);
+
+    return distX <= 1 && distY <= 1 &&
+           (distX != 0 || distY != 0); // can only move 1 square
+}
+
 
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
@@ -220,13 +234,12 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_QUEEN:
         case WHITE_QUEEN:
-            // TODO: Add queenMovementChecker
+            queenMovementChecker(game,move){
             return false;
 
         case BLACK_KING:
         case WHITE_KING:
-            // TODO: Add kingMovementChecker
-            return false;
+            return kingMovementChecker(move);
         }
 
     return false;
