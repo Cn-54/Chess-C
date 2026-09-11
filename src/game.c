@@ -296,6 +296,45 @@ static bool recordHistory(Game *game, Move move){
     Piece piece = game->board[move.from / 8][move.from % 8];
     Piece captured_piece = game->board[move.to / 8][move.to % 8];
 
+    if (move.promotion != PROMOTE_NONE) { // promotions
+        if (piece == WHITE_PAWN) {
+            switch (move.promotion) {
+                case PROMOTE_QUEEN:
+                    piece = WHITE_QUEEN;
+                    break;
+                case PROMOTE_ROOK:
+                    piece = WHITE_ROOK;
+                    break;
+                case PROMOTE_BISHOP:
+                    piece = WHITE_BISHOP;
+                    break;
+                case PROMOTE_KNIGHT:
+                    piece = WHITE_KNIGHT;
+                    break;
+                default:
+                    break;
+            }
+        }
+        else if (piece == BLACK_PAWN) {
+            switch (move.promotion) {
+                case PROMOTE_QUEEN:
+                    piece = BLACK_QUEEN;
+                    break;
+                case PROMOTE_ROOK:
+                    piece = BLACK_ROOK;
+                    break;
+                case PROMOTE_BISHOP:
+                    piece = BLACK_BISHOP;
+                    break;
+                case PROMOTE_KNIGHT:
+                    piece = BLACK_KNIGHT;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     game->history[game->move_num].move = move;
     game->history[game->move_num].captured_piece = captured_piece;
     game->history[game->move_num].previous_turn = game->turn;
@@ -408,19 +447,48 @@ MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont
             if (!islegalmove(game, move))
                 continue;
 
-            if (!Make_Move(game, move))
-                continue;
+            Piece piece = game->board[move.from / 8][move.from % 8];
 
-            if (!isChecked(game, original_turn)) {
-                legal_moves.moves[legal_moves.count] = move;
-                legal_moves.count++;
+            bool promotion =
+                (piece == WHITE_PAWN && move.to / 8 == 0) ||
+                (piece == BLACK_PAWN && move.to / 8 == 7);
+
+            if (promotion) {
+                Promotion promotions[] = {
+                    PROMOTE_QUEEN,
+                    PROMOTE_ROOK,
+                    PROMOTE_BISHOP,
+                    PROMOTE_KNIGHT
+                };
+
+                for (int i = 0; i < 4; i++) {
+                    Move promotion_move = move;
+                    promotion_move.promotion = promotions[i];
+
+                    if (!Make_Move(game, promotion_move))
+                        continue;
+
+                    if (!isChecked(game, original_turn)) {
+                        legal_moves.moves[legal_moves.count] = promotion_move;
+                        legal_moves.count++;
+                    }
+
+                    Undo_Move(game);
+                }
             }
+            else {
+                if (!Make_Move(game, move))
+                    continue;
 
-            Undo_Move(game);
+                if (!isChecked(game, original_turn)) {
+                    legal_moves.moves[legal_moves.count] = move;
+                    legal_moves.count++;
+                }
+
+                Undo_Move(game);
+            }
         }
     }
-
     return legal_moves;
 }
-// TODO: Add legal move generation to be passed to the engine
 

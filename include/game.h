@@ -36,10 +36,18 @@ typedef enum {
     GAME_DRAW
 } GameState;
 
+typedef enum {
+    PROMOTE_NONE,
+    PROMOTE_QUEEN,
+    PROMOTE_ROOK,
+    PROMOTE_BISHOP,
+    PROMOTE_KNIGHT
+} Promotion;
+
 typedef struct {
     uint8_t from;
     uint8_t to;
-
+    Promotion promotion;
 } Move;
 
 typedef struct {

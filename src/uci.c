@@ -73,8 +73,25 @@ static void handle_position(Game *game, char *input){
 
             Move move = {
                 .from = from,
-                .to = to
+                .to = to,
+                .promotion = PROMOTE_NONE
             };
+            if (strlen(token) == 5) { // add promotions to the UCI input
+                switch (token[4]) {
+                    case 'q':
+                        move.promotion = PROMOTE_QUEEN;
+                        break;
+                    case 'r':
+                        move.promotion = PROMOTE_ROOK;
+                        break;
+                    case 'b':
+                        move.promotion = PROMOTE_BISHOP;
+                        break;
+                    case 'n':
+                        move.promotion = PROMOTE_KNIGHT;
+                        break;
+                }
+            }
 
             if (!Make_Move(game, move))
                 return;
