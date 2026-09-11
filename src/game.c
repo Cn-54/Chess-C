@@ -52,8 +52,7 @@ static bool rookMovementChecker(Game *game,Move move){
     int to_y = move.to / 8;
     int to_x = move.to % 8;
 
-    // TODO:
-    // Add obstruction detection
+    // TODO: Add obstruction detection
     if (move.from == move.to) return false; // cannot move to own square
     return from_x == to_x || from_y == to_y; // if rook stays on the same X or Y its legal
 }
@@ -62,8 +61,6 @@ static bool rookMovementChecker(Game *game,Move move){
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
 
-    // TODO:
-    // add logic to determine legal moves here
 
     Piece piece = game->board[move.from / 8][move.from % 8];
     Piece target = game->board[move.to / 8][move.to % 8];
@@ -73,12 +70,12 @@ static bool islegalmove(Game *game, Move move){
     if (target != EMPTY && (piece_colour(piece) == piece_colour(target))) return false; // cannot capture own piece
 
     // peice movement logic
+    // TODO: Add logic to determine legal moves here
     switch (piece) {
         case BLACK_PAWN:
         case WHITE_PAWN:
-            // TODO:
-            // Add pawnMovementChecker
-            break;
+            // TODO: Add pawnMovementChecker
+            return false;
 
         case BLACK_ROOK:
         case WHITE_ROOK:
@@ -86,30 +83,26 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_KNIGHT:
         case WHITE_KNIGHT:
-            // TODO:
-            // Add knightMovementChecker
-            break;
+            // TODO: Add knightMovementChecker
+            return false;
 
         case BLACK_BISHOP:
         case WHITE_BISHOP:
-            // TODO:
-            // Add bishopMovementChecker
-            break;
+            // TODO: Add bishopMovementChecker
+            return false;
 
         case BLACK_QUEEN:
         case WHITE_QUEEN:
-            // TODO:
-            // Add queenMovementChecker
-            break;
+            // TODO: Add queenMovementChecker
+            return false;
 
         case BLACK_KING:
         case WHITE_KING:
-            // TODO:
-            // Add kintMovementChecker
-            break;
+            // TODO: Add kingMovementChecker
+            return false;
         }
 
-    return true;
+    return false;
 }
 
 // HELPERS END
