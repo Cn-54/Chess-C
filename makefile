@@ -1,37 +1,25 @@
-CC = gcc
+CC_LINUX = gcc
+CC_WINDOWS = x86_64-w64-mingw32-gcc
 
 CFLAGS = -Wall -Wextra -std=c11 -Iinclude -g
-
-TARGET = bin/chess
 
 SRC = src/main.c \
       src/game.c \
       src/engine.c \
       src/uci.c
 
-OBJ = build/main.o \
-      build/game.o \
-      build/engine.o \
-      build/uci.o
+LINUX_TARGET = bin/chess-linux
+WINDOWS_TARGET = bin/chess.exe
 
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $(TARGET)
+.PHONY: linux windows clean rebuild
 
-build/main.o: src/main.c
-	$(CC) $(CFLAGS) -c src/main.c -o build/main.o
+linux:
+	$(CC_LINUX) $(CFLAGS) $(SRC) -o $(LINUX_TARGET)
 
-build/game.o: src/game.c
-	$(CC) $(CFLAGS) -c src/game.c -o build/game.o
-
-build/engine.o: src/engine.c
-	$(CC) $(CFLAGS) -c src/engine.c -o build/engine.o
-
-build/uci.o: src/uci.c
-	$(CC) $(CFLAGS) -c src/uci.c -o build/uci.o
+windows:
+	$(CC_WINDOWS) $(CFLAGS) $(SRC) -o $(WINDOWS_TARGET)
 
 clean:
-	rm -f build/*.o $(TARGET)
+	rm -f $(LINUX_TARGET) $(WINDOWS_TARGET)
 
-rebuild: clean $(TARGET)
-
-.PHONY: clean rebuild
+rebuild: clean linux windows
