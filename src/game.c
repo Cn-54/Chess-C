@@ -234,7 +234,7 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_QUEEN:
         case WHITE_QUEEN:
-            queenMovementChecker(game,move){
+            queenMovementChecker(game,move);
             return false;
 
         case BLACK_KING:
@@ -244,6 +244,7 @@ static bool islegalmove(Game *game, Move move){
 
     return false;
 }
+
 
 // HELPERS END
 
@@ -265,8 +266,7 @@ void Destroy_Game(Game *game){
     free(game);
 }
 
-bool Make_Move(Game *game, Move move)
-{
+bool Make_Move(Game *game, Move move){
     if (!islegalmove(game, move)) {
         return false;
     }
