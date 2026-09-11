@@ -234,8 +234,7 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_QUEEN:
         case WHITE_QUEEN:
-            queenMovementChecker(game,move);
-            return false;
+            return queenMovementChecker(game,move);
 
         case BLACK_KING:
         case WHITE_KING:
