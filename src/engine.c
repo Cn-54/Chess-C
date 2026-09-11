@@ -5,6 +5,75 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define DEPTH 4
+
+static const int pawn_table[8][8] = {
+    {  0,   0,   0,   0,   0,   0,   0,   0},
+    { 50,  50,  50,  50,  50,  50,  50,  50},
+    { 10,  10,  20,  30,  30,  20,  10,  10},
+    {  5,   5,  10,  25,  25,  10,   5,   5},
+    {  0,   0,   0,  20,  20,   0,   0,   0},
+    {  5,  -5, -10,   0,   0, -10,  -5,   5},
+    {  5,  10,  10, -25, -25,  10,  10,   5},
+    {  0,   0,   0,   0,   0,   0,   0,   0}
+};
+
+static const int knight_table[8][8] = {
+    {-50, -40, -30, -30, -30, -30, -40, -50},
+    {-40, -20,   0,   0,   0,   0, -20, -40},
+    {-30,   0,  10,  15,  15,  10,   0, -30},
+    {-30,   5,  15,  20,  20,  15,   5, -30},
+    {-30,   0,  15,  20,  20,  15,   0, -30},
+    {-30,   5,  10,  15,  15,  10,   5, -30},
+    {-40, -20,   0,   5,   5,   0, -20, -40},
+    {-50, -40, -30, -30, -30, -30, -40, -50}
+};
+
+static const int bishop_table[8][8] = {
+    {-20, -10, -10, -10, -10, -10, -10, -20},
+    {-10,   0,   0,   0,   0,   0,   0, -10},
+    {-10,   0,   10,  10,  10,  10,   0, -10},
+    {-10,   5,   5,  10,  10,   5,   5, -10},
+    {-10,   0,   10,  10,  10,  10,   0, -10},
+    {-10,  10,  10,  10,  10,  10,  10, -10},
+    {-10,   5,   0,   0,   0,   0,   5, -10},
+    {-20, -10, -10, -10, -10, -10, -10, -20}
+};
+
+static const int rook_table[8][8] = {
+    {  0,   0,   0,   5,   5,   0,   0,   0},
+    { -5,   0,   0,   0,   0,   0,   0,  -5},
+    { -5,   0,   0,   0,   0,   0,   0,  -5},
+    { -5,   0,   0,   0,   0,   0,   0,  -5},
+    { -5,   0,   0,   0,   0,   0,   0,  -5},
+    { -5,   0,   0,   0,   0,   0,   0,  -5},
+    {  5,  10,  10,  10,  10,  10,  10,   5},
+    {  0,   0,   0,   0,   0,   0,   0,   0}
+};
+
+static const int queen_table[8][8] = {
+    {-20, -10, -10,  -5,  -5, -10, -10, -20},
+    {-10,   0,   0,   0,   0,   0,   0, -10},
+    {-10,   0,   5,   5,   5,   5,   0, -10},
+    { -5,   0,   5,   5,   5,   5,   0,  -5},
+    {  0,   0,   5,   5,   5,   5,   0,  -5},
+    {-10,   5,   5,   5,   5,   5,   5, -10},
+    {-10,   0,   5,   0,   0,   0,   0, -10},
+    {-20, -10, -10,  -5,  -5, -10, -10, -20}
+};
+
+static const int king_table[8][8] = {
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-20, -30, -30, -40, -40, -30, -30, -20},
+    {-10, -20, -20, -20, -20, -20, -20, -10},
+    { 20,  20,   0,   0,   0,   0,  20,  20},
+    { 20,  30,  10,   0,   0,  10,  30,  20}
+};
+
+
 static int max(int a, int b){
     if(a > b){
         return a;
@@ -26,17 +95,52 @@ int evaluate(Game *game){
             Piece piece = game->board[y][x];
 
                     switch (piece) {
-                case WHITE_PAWN:   score += 100; break;
-                case WHITE_KNIGHT: score += 320; break;
-                case WHITE_BISHOP: score += 330; break;
-                case WHITE_ROOK:   score += 500; break;
-                case WHITE_QUEEN:  score += 900; break;
+                        case WHITE_PAWN:
+                            score += 100 + pawn_table[y][x];
+                            break;
 
-                case BLACK_PAWN:   score -= 100; break;
-                case BLACK_KNIGHT: score -= 320; break;
-                case BLACK_BISHOP: score -= 330; break;
-                case BLACK_ROOK:   score -= 500; break;
-                case BLACK_QUEEN:  score -= 900; break;
+                        case WHITE_KNIGHT:
+                            score += 320 + knight_table[y][x];
+                            break;
+
+                        case WHITE_BISHOP:
+                            score += 330 + bishop_table[y][x];
+                            break;
+
+                        case WHITE_ROOK:
+                            score += 500 + rook_table[y][x];
+                            break;
+
+                        case WHITE_QUEEN:
+                            score += 900 + queen_table[y][x];
+                            break;
+                        case WHITE_KING:
+                            score += 900 + king_table[y][x];
+                            break;
+
+                        case BLACK_PAWN:
+                            score -= 100 + pawn_table[7-y][x]; // 7-y flips the table for black
+                            break;
+
+                        case BLACK_KNIGHT:
+                            score -= 320 + knight_table[7-y][x];
+                            break;
+
+                        case BLACK_BISHOP:
+                            score -= 330 + bishop_table[7-y][x];
+                            break;
+
+                        case BLACK_ROOK:
+                            score -= 500 + rook_table[7-y][x];
+                            break;
+
+                        case BLACK_QUEEN:
+                            score -= 900 + queen_table[7-y][x];
+                            break;
+                        case BLACK_KING:
+                            score += 900 + king_table[7-y][x];
+                            break;
+
 
                 default:
                     break;
@@ -117,7 +221,7 @@ Move Think(Game *game){
         for (size_t i = 0; i < moves.count; i++) {
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, 3, INT_MIN, INT_MAX, false);
+            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, false);
 
             Undo_Move(game);
 
@@ -134,7 +238,7 @@ Move Think(Game *game){
         for (size_t i = 0; i < moves.count; i++) {
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, 3, INT_MIN, INT_MAX, true);
+            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, true);
 
             Undo_Move(game);
 
