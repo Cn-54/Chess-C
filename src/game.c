@@ -1,5 +1,6 @@
 #include "game.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 
@@ -52,7 +53,26 @@ static bool rookMovementChecker(Game *game,Move move){
     int to_y = move.to / 8;
     int to_x = move.to % 8;
 
-    // TODO: Add obstruction detection
+    if (from_x == to_x) { // if it moves on the y
+
+        int direction = (to_y > from_y) ? 1 : -1;
+
+        for (int y = from_y + direction; y != to_y; y += direction) {
+            if (game->board[y][from_x] != EMPTY)
+                return false;
+        }
+    }
+
+    if (from_y == to_y) { // if it moves on the x
+
+        int direction = (to_x > from_x) ? 1 : -1;
+
+        for (int x = from_x + direction; x != to_x; x += direction) {
+            if (game->board[from_y][x] != EMPTY)
+                return false;
+        }
+    }
+
     if (move.from == move.to) return false; // cannot move to own square
     return from_x == to_x || from_y == to_y; // if rook stays on the same X or Y its legal
 }
