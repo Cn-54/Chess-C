@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define DEPTH 2 // effective depth is DEPTH+1
-#define QUIESCENCE_DEPTH 5
+#define DEPTH 3 // effective depth is DEPTH+1
+#define QUIESCENCE_DEPTH 6
 
 static const int pawn_table[8][8] = {
     {  0,   0,   0,   0,   0,   0,   0,   0},
@@ -206,53 +206,102 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth
     return maximizingPlayer ? alpha : beta;
 }
 
-int minmax(Game *game,int depth,int alpha,int beta,bool maximizingPlayer){
+int isRepetition(Game *game){
+    if (game->move_num < 4)
+        return 0;
+
+    int repetitions = 0;
+
+    // The current position is defined by the sequence of moves
+    // immediately preceding it.
+    for (int i = 0; i + 4 <= game->move_num; i += 2) {
+
+        Move a = game->history[i].move;
+        Move b = game->history[i + 1].move;
+
+        Move c = game->history[game->move_num - 2].move;
+        Move d = game->history[game->move_num - 1].move;
+
+        if (a.from == c.from &&
+            a.to   == c.to &&
+            b.from == d.from &&
+            b.to   == d.to) {
+
+            repetitions++;
+        }
+    }
+
+    return repetitions;
+}
+
+int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
+
     if (depth == 0)
-        return quiescence(game, alpha, beta, maximizingPlayer,QUIESCENCE_DEPTH);
+        return quiescence(game, alpha, beta, maximizingPlayer, QUIESCENCE_DEPTH);
 
     MoveList moves = GenerateMoves(game);
-    if(maximizingPlayer){
-        if(moves.count == 0){
-            if(isChecked(game, COLOUR_WHITE)){
+
+    if (maximizingPlayer){
+
+        if (moves.count == 0){
+            if (isChecked(game, COLOUR_WHITE)){
                 return INT_MIN;
             }
             return 0;
         }
+
         int maxEval = INT_MIN;
-        for (size_t i = 0; i < moves.count; i++) {
+
+        for (size_t i = 0; i < moves.count; i++){
+
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, depth - 1,alpha,beta,false);
+            int score = minmax(game, depth - 1, alpha, beta, true);
+
+            int repetitions = isRepetition(game);
 
             Undo_Move(game);
-            
+
+            score -= repetitions * 50;
+
             maxEval = max(maxEval, score);
             alpha = max(alpha, score);
-            if(beta <= alpha){
+
+            if (beta <= alpha){
                 break;
             }
         }
 
         return maxEval;
     }
+
     else{
-        if(moves.count == 0){
-            if(isChecked(game, COLOUR_BLACK)){
+
+        if (moves.count == 0){
+            if (isChecked(game, COLOUR_BLACK)){
                 return INT_MAX;
             }
             return 0;
         }
+
         int minEval = INT_MAX;
-        for (size_t i = 0; i < moves.count; i++) {
+
+        for (size_t i = 0; i < moves.count; i++){
+
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, depth - 1,alpha,beta,true);
+            int score = minmax(game, depth - 1, alpha, beta, false);
+
+            int repetitions = isRepetition(game);
 
             Undo_Move(game);
 
+            score += repetitions * 50;
+
             minEval = min(minEval, score);
             beta = min(beta, score);
-            if(beta <= alpha){
+
+            if (beta <= alpha){
                 break;
             }
         }
@@ -260,7 +309,6 @@ int minmax(Game *game,int depth,int alpha,int beta,bool maximizingPlayer){
         return minEval;
     }
 }
-
 
 
 Move Think(Game *game){

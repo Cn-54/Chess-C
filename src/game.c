@@ -425,25 +425,36 @@ void Undo_Move(Game *game){
 }
 
 MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont put the king in check
-    MoveList legal_moves = {0};
 
+    MoveList legal_moves = {0};
     Colour original_turn = game->turn;
 
     for (int from = 0; from < 64; from++) {
+
+        Piece piece = game->board[from / 8][from % 8];
+
+        if (piece == EMPTY)
+            continue;
+
+        if (piece_colour(piece) != game->turn)
+            continue;
+
         for (int to = 0; to < 64; to++) {
+
+            if (to == from)
+                continue;
 
             Move move = {.from = from, .to = to};
 
             if (!islegalmove(game, move))
                 continue;
 
-            Piece piece = game->board[move.from / 8][move.from % 8];
-
             bool promotion =
                 (piece == WHITE_PAWN && move.to / 8 == 0) ||
                 (piece == BLACK_PAWN && move.to / 8 == 7);
 
             if (promotion) {
+
                 Promotion promotions[] = {
                     PROMOTE_QUEEN,
                     PROMOTE_ROOK,
@@ -452,11 +463,11 @@ MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont
                 };
 
                 for (int i = 0; i < 4; i++) {
+
                     Move promotion_move = move;
                     promotion_move.promotion = promotions[i];
 
-                    if (!Make_Move(game, promotion_move))
-                        continue;
+                    recordHistory(game, promotion_move);
 
                     if (!isChecked(game, original_turn)) {
                         legal_moves.moves[legal_moves.count] = promotion_move;
@@ -467,8 +478,8 @@ MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont
                 }
             }
             else {
-                if (!Make_Move(game, move))
-                    continue;
+
+                recordHistory(game, move);
 
                 if (!isChecked(game, original_turn)) {
                     legal_moves.moves[legal_moves.count] = move;
@@ -479,6 +490,6 @@ MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont
             }
         }
     }
+
     return legal_moves;
 }
-
