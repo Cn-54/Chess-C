@@ -97,6 +97,8 @@ static bool bishopMovementChecker(Game *game, Move move){
     int to_y = move.to / 8;
     int to_x = move.to % 8;
 
+    if (move.from == move.to)return false;
+
     int distX = abs(to_x - from_x);
     int distY = abs(to_y - from_y);
 
