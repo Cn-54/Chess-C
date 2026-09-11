@@ -21,6 +21,7 @@ typedef enum {
 } Piece;
 
 typedef enum {
+    COLOUR_EMPTY,
     COLOUR_WHITE,
     COLOUR_BLACK
 } Colour;

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 
+// HELPERS
 static void init_board(Game *game){
     game->board[0][0] = BLACK_ROOK;
     game->board[0][7] = BLACK_ROOK;
@@ -37,14 +38,30 @@ static void init_board(Game *game){
     }
 }
 
+static Colour piece_colour(Piece piece){
+    if(piece == EMPTY) return COLOUR_EMPTY;
+    if (piece >= WHITE_PAWN && piece <= WHITE_KING) return COLOUR_WHITE;
+    if (piece >= BLACK_PAWN && piece <= BLACK_KING) return COLOUR_BLACK;
+    return COLOUR_EMPTY
+}
+
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
 
     // TODO:
     // add logic to determine legal moves here
+
+    Piece piece = game->board[move.from / 8][move.from % 8];
+    Piece target = game->board[move.to / 8][move.to % 8];
+
+    if (piece_colour(piece) != game->turn) return false; // cannot move on opponents turn
+    if (piece == EMPTY) return false; // moving empty squares not allowed
+    if (target != EMPTY && (piece_colour(piece) == piece_colour(target))) return false; // cannot capture own piece
+    
     return true;
 }
 
+// HELPERS END
 
 Game *Create_Game(void){
     Game *game = calloc(1, sizeof(Game));
