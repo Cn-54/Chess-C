@@ -109,18 +109,39 @@ Move Think(Game *game){
         return (Move){0};
 
     Move best_move = moves.moves[0];
-    int best_score = INT_MIN;
 
-    for (size_t i = 0; i < moves.count; i++) {
-        Make_Move(game, moves.moves[i]);
+    if (game->turn == COLOUR_WHITE) {
 
-        int score = minmax(game, 3, INT_MIN, INT_MAX, false);
+        int best_score = INT_MIN;
 
-        Undo_Move(game);
+        for (size_t i = 0; i < moves.count; i++) {
+            Make_Move(game, moves.moves[i]);
 
-        if (score > best_score) {
-            best_score = score;
-            best_move = moves.moves[i];
+            int score = minmax(game, 3, INT_MIN, INT_MAX, false);
+
+            Undo_Move(game);
+
+            if (score > best_score) {
+                best_score = score;
+                best_move = moves.moves[i];
+            }
+        }
+
+    } else {
+
+        int best_score = INT_MAX;
+
+        for (size_t i = 0; i < moves.count; i++) {
+            Make_Move(game, moves.moves[i]);
+
+            int score = minmax(game, 3, INT_MIN, INT_MAX, true);
+
+            Undo_Move(game);
+
+            if (score < best_score) {
+                best_score = score;
+                best_move = moves.moves[i];
+            }
         }
     }
 
