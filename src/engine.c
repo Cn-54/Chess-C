@@ -5,7 +5,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define DEPTH 3 // effective depth is DEPTH+1
+#define DEPTH 2 // effective depth is DEPTH+1
+#define QUIESCENCE_DEPTH 5
 
 static const int pawn_table[8][8] = {
     {  0,   0,   0,   0,   0,   0,   0,   0},
@@ -150,13 +151,14 @@ int evaluate(Game *game){
     return score;
 }
 
-]
 static bool isCapture(Game *game, Move move){
     return game->board[move.to / 8][move.to % 8] != EMPTY;
 }
 
-int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer){
+int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth){
     int stand_pat = evaluate(game);
+    if (depth == 0)
+        return stand_pat;
 
     if (maximizingPlayer) {
         if (stand_pat >= beta)
@@ -182,7 +184,7 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer){
 
         Make_Move(game, move);
 
-        int score = quiescence(game,alpha,beta,!maximizingPlayer);
+        int score = quiescence(game,alpha,beta,!maximizingPlayer,depth-1);
 
         Undo_Move(game);
 
@@ -206,7 +208,7 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer){
 
 int minmax(Game *game,int depth,int alpha,int beta,bool maximizingPlayer){
     if (depth == 0)
-        return quiescence(game, alpha, beta, maximizingPlayer);
+        return quiescence(game, alpha, beta, maximizingPlayer,QUIESCENCE_DEPTH);
 
     MoveList moves = GenerateMoves(game);
     if(maximizingPlayer){
