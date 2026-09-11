@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MAX_MOVE_HISTORY 100
+
 typedef enum {
     EMPTY,
     WHITE_PAWN,
@@ -39,11 +41,19 @@ typedef struct {
 
 } Move;
 
+typedef struct {
+    Move move;
+    Piece captured_piece;
+    Colour previous_turn;
+} MoveHistory;
 
 typedef struct {
     Piece board[8][8];
     Colour turn;
     GameState state;
+
+    MoveHistory history[MAX_MOVE_HISTORY];
+    int move_num;
 
 } Game;
 

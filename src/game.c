@@ -319,5 +319,22 @@ bool Make_Move(Game *game, Move move){
 
     game->turn = (game->turn == COLOUR_WHITE)? COLOUR_BLACK : COLOUR_WHITE;
 
+    game->move_num++;
     return true;
+}
+
+void Undo_Move(Game *game){
+    MoveHistory history = game->history[game->move_num - 1]; // grabs the last history of the last move
+    Move move = history.move; // grabs the last move
+
+    
+    Piece piece = game->board[move.to / 8][move.to % 8]; // grabs the peice mobed
+
+    // undos the move
+    game->board[move.from / 8][move.from % 8] = piece;
+    game->board[move.to / 8][move.to % 8] = history.captured_piece;
+
+    game->turn = history.previous_turn;
+
+    game->move_num--;
 }
