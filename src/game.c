@@ -42,8 +42,22 @@ static Colour piece_colour(Piece piece){
     if(piece == EMPTY) return COLOUR_EMPTY;
     if (piece >= WHITE_PAWN && piece <= WHITE_KING) return COLOUR_WHITE;
     if (piece >= BLACK_PAWN && piece <= BLACK_KING) return COLOUR_BLACK;
-    return COLOUR_EMPTY
+    return COLOUR_EMPTY;
 }
+
+static bool rookMovementChecker(Game *game,Move move){
+    int from_y = move.from / 8;
+    int from_x = move.from % 8;
+
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    // TODO:
+    // Add obstruction detection
+    if (move.from == move.to) return false; // cannot move to own square
+    return from_x == to_x || from_y == to_y; // if rook stays on the same X or Y its legal
+}
+
 
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
@@ -57,7 +71,44 @@ static bool islegalmove(Game *game, Move move){
     if (piece_colour(piece) != game->turn) return false; // cannot move on opponents turn
     if (piece == EMPTY) return false; // moving empty squares not allowed
     if (target != EMPTY && (piece_colour(piece) == piece_colour(target))) return false; // cannot capture own piece
-    
+
+    // peice movement logic
+    switch (piece) {
+        case BLACK_PAWN:
+        case WHITE_PAWN:
+            // TODO:
+            // Add pawnMovementChecker
+            break;
+
+        case BLACK_ROOK:
+        case WHITE_ROOK:
+            return rookMovementChecker(game,move);
+
+        case BLACK_KNIGHT:
+        case WHITE_KNIGHT:
+            // TODO:
+            // Add knightMovementChecker
+            break;
+
+        case BLACK_BISHOP:
+        case WHITE_BISHOP:
+            // TODO:
+            // Add bishopMovementChecker
+            break;
+
+        case BLACK_QUEEN:
+        case WHITE_QUEEN:
+            // TODO:
+            // Add queenMovementChecker
+            break;
+
+        case BLACK_KING:
+        case WHITE_KING:
+            // TODO:
+            // Add kintMovementChecker
+            break;
+        }
+
     return true;
 }
 
