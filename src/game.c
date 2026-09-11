@@ -244,6 +244,7 @@ static bool pawnMovementChecker(Game *game, Move move){
 }
 
 
+
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
 
@@ -286,6 +287,26 @@ static bool islegalmove(Game *game, Move move){
     return false;
 }
 
+static bool recordHistory(Game *game, Move move){
+    if (game->move_num >= MAX_MOVE_HISTORY)
+        return false;
+
+    Piece piece = game->board[move.from / 8][move.from % 8];
+    Piece captured_piece = game->board[move.to / 8][move.to % 8];
+
+    game->history[game->move_num].move = move;
+    game->history[game->move_num].captured_piece = captured_piece;
+    game->history[game->move_num].previous_turn = game->turn;
+
+    game->board[move.to / 8][move.to % 8] = piece;
+    game->board[move.from / 8][move.from % 8] = EMPTY;
+
+    game->turn = (game->turn == COLOUR_WHITE) ? COLOUR_BLACK : COLOUR_WHITE;
+
+    game->move_num++;
+
+    return true;
+}
 
 // HELPERS END
 
@@ -308,19 +329,11 @@ void Destroy_Game(Game *game){
 }
 
 bool Make_Move(Game *game, Move move){
-    if (!islegalmove(game, move)) {
+
+    if (!islegalmove(game, move)) // checks if the move is legal before recording it
         return false;
-    }
 
-    Piece piece = game->board[move.from / 8][move.from % 8]; // from and too stored as an 8 bit num 0-63 so /8 and %8 are for the x and y
-
-    game->board[move.to / 8][move.to % 8] = piece;
-    game->board[move.from / 8][move.from % 8] = EMPTY;
-
-    game->turn = (game->turn == COLOUR_WHITE)? COLOUR_BLACK : COLOUR_WHITE;
-
-    game->move_num++;
-    return true;
+    return recordHistory(game, move); // record history records the move and performs it
 }
 
 void Undo_Move(Game *game){
@@ -338,3 +351,4 @@ void Undo_Move(Game *game){
 
     game->move_num--;
 }
+
