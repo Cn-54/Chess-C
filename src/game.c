@@ -90,6 +90,103 @@ static bool knightMovementChecker(Move move){
     return (distX == 2 && distY == 1) || (distX == 1 && distY == 2); // can only move in L shapes
 }
 
+static bool bishopMovementChecker(Game *game, Move move){
+    int from_y = move.from / 8;
+    int from_x = move.from % 8;
+
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    int distX = abs(to_x - from_x);
+    int distY = abs(to_y - from_y);
+
+    // Bishops must move diagonally
+    if (distX != distY)
+        return false;
+
+    int directionX = (to_x > from_x) ? 1 : -1;
+    int directionY = (to_y > from_y) ? 1 : -1;
+
+    // Check for obstructions
+    int x = from_x + directionX;
+    int y = from_y + directionY;
+
+    while (x != to_x && y != to_y) {
+        if (game->board[y][x] != EMPTY)
+            return false;
+
+        x += directionX;
+        y += directionY;
+    }
+
+    return true;
+}
+
+static bool queenMovementChecker(Game *game, Move move){
+    int from_y = move.from / 8;
+    int from_x = move.from % 8;
+
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    int distX = abs(to_x - from_x);
+    int distY = abs(to_y - from_y);
+
+    // Cannot stay on the same square
+    if (move.from == move.to)
+        return false;
+
+    // Diagonal movement
+    if (distX == distY) {
+
+        int directionX = (to_x > from_x) ? 1 : -1;
+        int directionY = (to_y > from_y) ? 1 : -1;
+
+        int x = from_x + directionX;
+        int y = from_y + directionY;
+
+        while (x != to_x && y != to_y) {
+            if (game->board[y][x] != EMPTY)
+                return false;
+
+            x += directionX;
+            y += directionY;
+        }
+
+        return true;
+    }
+
+    // Vertical movement
+    if (from_x == to_x) {
+
+        int direction = (to_y > from_y) ? 1 : -1;
+
+        for (int y = from_y + direction; y != to_y; y += direction) {
+            if (game->board[y][from_x] != EMPTY)
+                return false;
+        }
+
+        return true;
+    }
+
+    // Horizontal movement
+    if (from_y == to_y) {
+
+        int direction = (to_x > from_x) ? 1 : -1;
+
+        for (int x = from_x + direction; x != to_x; x += direction) {
+            if (game->board[from_y][x] != EMPTY)
+                return false;
+        }
+
+        return true;
+    }
+
+    return false;
+    // basically a bishop and rook merged
+}
+
+
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
 
@@ -119,8 +216,7 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_BISHOP:
         case WHITE_BISHOP:
-            // TODO: Add bishopMovementChecker
-            return false;
+            return bishopMovementChecker(game,move);
 
         case BLACK_QUEEN:
         case WHITE_QUEEN:
