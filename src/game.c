@@ -387,5 +387,31 @@ void Undo_Move(Game *game){
     game->move_num--;
 }
 
+MoveList GenerateMoves(Game *game){ // generates a list of legal moves that dont put the king in check
+    MoveList legal_moves = {0};
+
+    Colour original_turn = game->turn;
+
+    for (int from = 0; from < 64; from++) {
+        for (int to = 0; to < 64; to++) {
+
+            Move move = {.from = from, .to = to};
+
+            if (!islegalmove(game, move))
+                continue;
+
+            Make_Move(game, move);
+
+            if (!isChecked(game, original_turn)) {
+                legal_moves.moves[legal_moves.count] = move;
+                legal_moves.count++;
+            }
+
+            Undo_Move(game);
+        }
+    }
+
+    return legal_moves;
+}
 // TODO: Add legal move generation to be passed to the engine
 

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #define MAX_MOVE_HISTORY 100
 
@@ -48,6 +49,11 @@ typedef struct {
 } MoveHistory;
 
 typedef struct {
+    Move moves[256];
+    size_t count;
+} MoveList;
+
+typedef struct {
     Piece board[8][8];
     Colour turn;
     GameState state;
@@ -57,9 +63,12 @@ typedef struct {
 
 } Game;
 
+
 Game *Create_Game(void);
 void Destroy_Game(Game *game);
 bool Make_Move(Game *game, Move move);
+void Undo_Move(Game *game);
+MoveList GenerateMoves(Game *game);
 
 
 #endif
