@@ -150,8 +150,63 @@ int evaluate(Game *game){
     return score;
 }
 
+]
+static bool isCapture(Game *game, Move move){
+    return game->board[move.to / 8][move.to % 8] != EMPTY;
+}
+
+int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer){
+    int stand_pat = evaluate(game);
+
+    if (maximizingPlayer) {
+        if (stand_pat >= beta)
+            return beta;
+
+        if (stand_pat > alpha)
+            alpha = stand_pat;
+    } else {
+        if (stand_pat <= alpha)
+            return alpha;
+
+        if (stand_pat < beta)
+            beta = stand_pat;
+    }
+
+    MoveList moves = GenerateMoves(game);
+
+    for (size_t i = 0; i < moves.count; i++) {
+        Move move = moves.moves[i];
+
+        if (!isCapture(game, move))
+            continue;
+
+        Make_Move(game, move);
+
+        int score = quiescence(game,alpha,beta,!maximizingPlayer);
+
+        Undo_Move(game);
+
+        if (maximizingPlayer) {
+            if (score > alpha)
+                alpha = score;
+
+            if (alpha >= beta)
+                break;
+        } else {
+            if (score < beta)
+                beta = score;
+
+            if (beta <= alpha)
+                break;
+        }
+    }
+
+    return maximizingPlayer ? alpha : beta;
+}
+
 int minmax(Game *game,int depth,int alpha,int beta,bool maximizingPlayer){
-    if(depth == 0) return evaluate(game);
+    if (depth == 0)
+        return quiescence(game, alpha, beta, maximizingPlayer);
 
     MoveList moves = GenerateMoves(game);
     if(maximizingPlayer){
