@@ -5,7 +5,7 @@
 
 
 // HELPERS
-static void init_board(Game *game){
+void init_board(Game *game){
     game->board[0][0] = BLACK_ROOK;
     game->board[0][7] = BLACK_ROOK;
 

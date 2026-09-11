@@ -66,6 +66,7 @@ typedef struct {
 
 Game *Create_Game(void);
 void Destroy_Game(Game *game);
+void init_board(Game *game);
 bool Make_Move(Game *game, Move move);
 void Undo_Move(Game *game);
 MoveList GenerateMoves(Game *game);
