@@ -202,6 +202,47 @@ static bool kingMovementChecker(Move move){
            (distX != 0 || distY != 0); // can only move 1 square
 }
 
+static bool pawnMovementChecker(Game *game, Move move){
+    int from_y = move.from / 8;
+    int from_x = move.from % 8;
+
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    int direction;
+    int starting_y;
+
+    Piece target = game->board[to_y][to_x];
+
+    if (game->turn == COLOUR_WHITE) {
+        direction = -1;
+        starting_y = 6;
+    } else {
+        direction = 1;
+        starting_y = 1;
+    }
+
+    int distX = abs(to_x - from_x);
+    int distY = abs(to_y - from_y);
+
+    // Move forward one square
+    if (distX == 0 && to_y == from_y + direction) return target == EMPTY;
+
+    // Move forward two squares from starting position
+    if (distX == 0 && from_y == starting_y && to_y == from_y + (2 * direction)) {
+
+        // Both squares must be empty
+        int middle_y = from_y + direction;
+
+        return game->board[middle_y][from_x] == EMPTY && target == EMPTY;
+    }
+
+    // Capturing
+    if (distX == 1 && to_y == from_y + direction) return target != EMPTY && piece_colour(target) != game->turn;
+
+    return false;
+}
+
 
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
