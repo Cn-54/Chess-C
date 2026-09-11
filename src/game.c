@@ -77,6 +77,18 @@ static bool rookMovementChecker(Game *game,Move move){
     return from_x == to_x || from_y == to_y; // if rook stays on the same X or Y its legal
 }
 
+static bool knightMovementChecker(Move move){
+    int from_y = move.from / 8;
+    int from_x = move.from % 8;
+
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    int distX = abs(to_x - from_x);
+    int distY = abs(to_y - from_y);
+
+    return (distX == 2 && distY == 1) || (distX == 1 && distY == 2); // can only move in L shapes
+}
 
 static bool islegalmove(Game *game, Move move){
     if(!(move.from <= 63  && move.to <= 63)) return false;
@@ -103,8 +115,7 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_KNIGHT:
         case WHITE_KNIGHT:
-            // TODO: Add knightMovementChecker
-            return false;
+            return knightMovementChecker(move);
 
         case BLACK_BISHOP:
         case WHITE_BISHOP:
