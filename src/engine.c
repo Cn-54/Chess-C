@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define DEPTH 4
+#define DEPTH 3 // effective depth is DEPTH+1
 
 static const int pawn_table[8][8] = {
     {  0,   0,   0,   0,   0,   0,   0,   0},
@@ -115,7 +115,7 @@ int evaluate(Game *game){
                             score += 900 + queen_table[y][x];
                             break;
                         case WHITE_KING:
-                            score += 900 + king_table[y][x];
+                            score += king_table[y][x];
                             break;
 
                         case BLACK_PAWN:
@@ -138,7 +138,7 @@ int evaluate(Game *game){
                             score -= 900 + queen_table[7-y][x];
                             break;
                         case BLACK_KING:
-                            score += 900 + king_table[7-y][x];
+                            score -= king_table[7-y][x];
                             break;
 
 
