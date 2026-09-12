@@ -5,7 +5,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define DEPTH 3 // effective depth is DEPTH+1
+volatile bool stop_requested = false;
+
+#define DEPTH 2 // effective depth is DEPTH+1
 #define QUIESCENCE_DEPTH 6
 
 static const int pawn_table[8][8] = {
@@ -156,6 +158,8 @@ static bool isCapture(Game *game, Move move){
 }
 
 int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth){
+    if (stop_requested)
+        return evaluate(game);
     int stand_pat = evaluate(game);
     if (depth == 0)
         return stand_pat;
@@ -206,36 +210,34 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth
     return maximizingPlayer ? alpha : beta;
 }
 
-int isRepetition(Game *game){
+bool isRepetition(Game *game){
     if (game->move_num < 4)
         return 0;
 
-    int repetitions = 0;
+    Move current_a = game->history[game->move_num - 2].move;
+    Move current_b = game->history[game->move_num - 1].move;
 
-    // The current position is defined by the sequence of moves
-    // immediately preceding it.
-    for (int i = 0; i + 4 <= game->move_num; i += 2) {
+    for (int i = game->move_num - 4; i >= 0; i -= 2) {
 
         Move a = game->history[i].move;
         Move b = game->history[i + 1].move;
 
-        Move c = game->history[game->move_num - 2].move;
-        Move d = game->history[game->move_num - 1].move;
+        if (a.from == current_a.from &&
+            a.to   == current_a.to &&
+            b.from == current_b.from &&
+            b.to   == current_b.to) {
 
-        if (a.from == c.from &&
-            a.to   == c.to &&
-            b.from == d.from &&
-            b.to   == d.to) {
-
-            repetitions++;
+            return true;
         }
     }
 
-    return repetitions;
+    return false;
 }
 
 int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
-
+    if (stop_requested)
+        return evaluate(game);
+    if (isRepetition(game)) return 0;
     if (depth == 0)
         return quiescence(game, alpha, beta, maximizingPlayer, QUIESCENCE_DEPTH);
 
@@ -258,11 +260,7 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
             int score = minmax(game, depth - 1, alpha, beta, false);
 
-            int repetitions = isRepetition(game);
-
             Undo_Move(game);
-
-            score -= repetitions * 50;
 
             maxEval = max(maxEval, score);
             alpha = max(alpha, score);
@@ -283,7 +281,6 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
             }
             return 0;
         }
-
         int minEval = INT_MAX;
 
         for (size_t i = 0; i < moves.count; i++) {
@@ -292,11 +289,7 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
             int score = minmax(game, depth - 1, alpha, beta, true);
 
-            int repetitions = isRepetition(game);
-
             Undo_Move(game);
-
-            score -= repetitions * 50;
 
             minEval = min(minEval, score);
             beta = min(beta, score);
@@ -330,6 +323,9 @@ Move Think(Game *game){
 
             Undo_Move(game);
 
+            if (stop_requested)
+                break;
+
             if (score > best_score) {
                 best_score = score;
                 best_move = moves.moves[i];
@@ -346,6 +342,9 @@ Move Think(Game *game){
             int score = minmax(game, DEPTH, INT_MIN, INT_MAX, true);
 
             Undo_Move(game);
+
+            if (stop_requested)
+                break;
 
             if (score < best_score) {
                 best_score = score;

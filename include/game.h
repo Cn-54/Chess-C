@@ -51,10 +51,23 @@ typedef struct {
 } Move;
 
 typedef struct {
+    bool white_kingside;
+    bool white_queenside;
+    bool black_kingside;
+    bool black_queenside;
+} CastlingRights;
+
+typedef struct {
     Move move;
     Piece moved_piece;
     Piece captured_piece;
     Colour previous_turn;
+
+    int previous_en_passant;
+    CastlingRights previous_castling;
+
+    bool was_en_passant;
+    bool was_castling;
 } MoveHistory;
 
 typedef struct {
@@ -69,6 +82,9 @@ typedef struct {
 
     MoveHistory history[MAX_MOVE_HISTORY];
     int move_num;
+
+    CastlingRights castling;
+    int en_passant;
 
 } Game;
 

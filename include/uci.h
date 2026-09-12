@@ -4,6 +4,6 @@
 #include "game.h"
 #include "engine.h"
 
-void UCI_Loop(Game *game);
+void *UCI_Loop(void *arg);
 
 #endif

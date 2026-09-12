@@ -14,10 +14,10 @@ WINDOWS_TARGET = bin/chess.exe
 .PHONY: linux windows clean rebuild
 
 linux:
-	$(CC_LINUX) $(CFLAGS) $(SRC) -o $(LINUX_TARGET)
+	$(CC_LINUX) $(CFLAGS) $(SRC) -o $(LINUX_TARGET) -pthread
 
 windows:
-	$(CC_WINDOWS) $(CFLAGS) $(SRC) -o $(WINDOWS_TARGET)
+	$(CC_WINDOWS) $(CFLAGS) $(SRC) -o $(WINDOWS_TARGET) -pthread
 
 clean:
 	rm -f $(LINUX_TARGET) $(WINDOWS_TARGET)

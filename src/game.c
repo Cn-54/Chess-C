@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+static bool isSquareAttacked(Game *game, int target, Colour attacker);
 
 // HELPERS
 void init_board(Game *game){
@@ -42,12 +43,15 @@ void init_board(Game *game){
     }
 }
 
+
+
 static Colour piece_colour(Piece piece){
     if(piece == EMPTY) return COLOUR_EMPTY;
     if (piece >= WHITE_PAWN && piece <= WHITE_KING) return COLOUR_WHITE;
     if (piece >= BLACK_PAWN && piece <= BLACK_KING) return COLOUR_BLACK;
     return COLOUR_EMPTY;
 }
+
 
 static bool rookMovementChecker(Game *game,Move move){
     int from_y = move.from / 8;
@@ -191,18 +195,117 @@ static bool queenMovementChecker(Game *game, Move move){
     // basically a bishop and rook merged
 }
 
-static bool kingMovementChecker(Move move){
+static bool kingMovementChecker(Game *game, Move move){
     int from_y = move.from / 8;
     int from_x = move.from % 8;
-
     int to_y = move.to / 8;
     int to_x = move.to % 8;
 
     int distX = abs(to_x - from_x);
     int distY = abs(to_y - from_y);
 
-    return distX <= 1 && distY <= 1 &&
-           (distX != 0 || distY != 0); // can only move 1 square
+    // Normal king move
+    if (distX <= 1 && distY <= 1)
+        return true;
+
+    // Castling
+    if (distY != 0 || distX != 2)
+        return false;
+
+    if (game->turn == COLOUR_WHITE) {
+
+        // White kingside
+        if (move.from == 60 && move.to == 62) {
+            if (!game->castling.white_kingside)
+                return false;
+
+            if (game->board[7][7] != WHITE_ROOK)
+                return false;
+
+            if (game->board[7][5] != EMPTY ||
+                game->board[7][6] != EMPTY)
+                return false;
+
+            if (isChecked(game, COLOUR_WHITE))
+                return false;
+
+            if (isSquareAttacked(game, 60, COLOUR_BLACK) ||
+                isSquareAttacked(game, 61, COLOUR_BLACK) ||
+                isSquareAttacked(game, 62, COLOUR_BLACK))
+                return false;
+            return true;
+        }
+
+        // White queenside
+        if (move.from == 60 && move.to == 58) {
+            if (!game->castling.white_queenside)
+                return false;
+
+            if (game->board[7][0] != WHITE_ROOK)
+                return false;
+
+            if (game->board[7][1] != EMPTY ||
+                game->board[7][2] != EMPTY ||
+                game->board[7][3] != EMPTY)
+                return false;
+
+            if (isChecked(game, COLOUR_WHITE))
+                return false;
+
+            if(isSquareAttacked(game, 60, COLOUR_BLACK) ||
+                isSquareAttacked(game, 59, COLOUR_BLACK) ||
+                isSquareAttacked(game, 58, COLOUR_BLACK)) return false;
+            return true;
+        }
+    }
+
+    else {
+
+        // Black kingside
+        if (move.from == 4 && move.to == 6) {
+            if (!game->castling.black_kingside)
+                return false;
+
+            if (game->board[0][7] != BLACK_ROOK)
+                return false;
+
+            if (game->board[0][5] != EMPTY ||
+                game->board[0][6] != EMPTY)
+                return false;
+
+            if (isChecked(game, COLOUR_BLACK))
+                return false;
+
+            if(isSquareAttacked(game, 4, COLOUR_WHITE) ||
+                isSquareAttacked(game, 5, COLOUR_WHITE) ||
+                isSquareAttacked(game, 6, COLOUR_WHITE)) return false;
+            return true;
+        }
+
+        // Black queenside
+        if (move.from == 4 && move.to == 2) {
+            if (!game->castling.black_queenside)
+                return false;
+
+            if (game->board[0][0] != BLACK_ROOK)
+                return false;
+
+            if (game->board[0][1] != EMPTY ||
+                game->board[0][2] != EMPTY ||
+                game->board[0][3] != EMPTY)
+                return false;
+
+            if (isChecked(game, COLOUR_BLACK))
+                return false;
+
+            if(isSquareAttacked(game, 4, COLOUR_WHITE) ||
+                isSquareAttacked(game, 3, COLOUR_WHITE) ||
+                isSquareAttacked(game, 2, COLOUR_WHITE)) return false;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static bool pawnMovementChecker(Game *game, Move move){
@@ -240,8 +343,24 @@ static bool pawnMovementChecker(Game *game, Move move){
         return game->board[middle_y][from_x] == EMPTY && target == EMPTY;
     }
 
-    // Capturing
-    if (distX == 1 && to_y == from_y + direction) return target != EMPTY && piece_colour(target) != game->turn;
+    // Normal capture
+    if (distX == 1 && to_y == from_y + direction) {
+
+        if (target != EMPTY &&
+            piece_colour(target) != game->turn) {
+            return true;
+        }
+
+        // En passant
+        if (target == EMPTY && move.to == game->en_passant) {
+
+            int captured_y = to_y - direction;
+
+            Piece captured = game->board[captured_y][to_x];
+
+            return (game->turn == COLOUR_WHITE && captured == BLACK_PAWN) || (game->turn == COLOUR_BLACK && captured == WHITE_PAWN);
+        }
+    }
 
     return false;
 }
@@ -283,62 +402,10 @@ static bool islegalmove(Game *game, Move move){
 
         case BLACK_KING:
         case WHITE_KING:
-            return kingMovementChecker(move);
+            return kingMovementChecker(game,move);
         }
 
     return false;
-}
-
-static bool recordHistory(Game *game, Move move){
-    if (game->move_num >= MAX_MOVE_HISTORY)
-        return false;
-
-    Piece original_piece =
-        game->board[move.from / 8][move.from % 8];
-
-    Piece piece = original_piece;
-
-    Piece captured_piece =
-        game->board[move.to / 8][move.to % 8];
-
-    // Save ORIGINAL piece
-    game->history[game->move_num].move = move;
-    game->history[game->move_num].moved_piece = original_piece;
-    game->history[game->move_num].captured_piece = captured_piece;
-    game->history[game->move_num].previous_turn = game->turn;
-
-    // Apply promotion
-    if (move.promotion != PROMOTE_NONE) {
-
-        if (piece == WHITE_PAWN) {
-            switch (move.promotion) {
-                case PROMOTE_QUEEN:  piece = WHITE_QUEEN;  break;
-                case PROMOTE_ROOK:   piece = WHITE_ROOK;   break;
-                case PROMOTE_BISHOP: piece = WHITE_BISHOP; break;
-                case PROMOTE_KNIGHT: piece = WHITE_KNIGHT; break;
-                default: break;
-            }
-        }
-
-        else if (piece == BLACK_PAWN) {
-            switch (move.promotion) {
-                case PROMOTE_QUEEN:  piece = BLACK_QUEEN;  break;
-                case PROMOTE_ROOK:   piece = BLACK_ROOK;   break;
-                case PROMOTE_BISHOP: piece = BLACK_BISHOP; break;
-                case PROMOTE_KNIGHT: piece = BLACK_KNIGHT; break;
-                default: break;
-            }
-        }
-    }
-
-    game->board[move.to / 8][move.to % 8] = piece;
-    game->board[move.from / 8][move.from % 8] = EMPTY;
-
-    game->turn = (game->turn == COLOUR_WHITE) ? COLOUR_BLACK : COLOUR_WHITE;
-
-    game->move_num++;
-
-    return true;
 }
 
 static bool isSquareAttacked(Game *game, int target, Colour attacker){ // checks if the attacker can move a piece from its current square to the target square
@@ -365,6 +432,285 @@ static bool isSquareAttacked(Game *game, int target, Colour attacker){ // checks
     return false;
 }
 
+
+
+static bool recordHistory(Game *game, Move move){
+    if (game->move_num >= MAX_MOVE_HISTORY)
+        return false;
+
+    Piece original_piece =
+        game->board[move.from / 8][move.from % 8];
+
+    Piece captured_piece =
+        game->board[move.to / 8][move.to % 8];
+
+    // Save state before making the move
+    game->history[game->move_num].move = move;
+    game->history[game->move_num].moved_piece = original_piece;
+    game->history[game->move_num].captured_piece = captured_piece;
+    game->history[game->move_num].previous_turn = game->turn;
+
+    game->history[game->move_num].previous_en_passant =
+        game->en_passant;
+
+    game->history[game->move_num].previous_castling =
+        game->castling;
+
+    game->history[game->move_num].was_en_passant = false;
+    game->history[game->move_num].was_castling = false;
+
+
+    // en pasaant
+
+    bool en_passant_capture = false;
+
+    if ((original_piece == WHITE_PAWN ||
+         original_piece == BLACK_PAWN) &&
+
+        move.to == game->en_passant &&
+
+        captured_piece == EMPTY) {
+
+        en_passant_capture = true;
+
+        game->history[game->move_num].was_en_passant = true;
+
+        int direction =
+            (original_piece == WHITE_PAWN) ? -1 : 1;
+
+        int captured_y =
+            move.to / 8 - direction;
+
+        captured_piece =
+            game->board[captured_y][move.to % 8];
+
+        // Store the pawn that was actually captured
+        game->history[game->move_num].captured_piece =
+            captured_piece;
+    }
+
+
+    // castling
+    bool castling = false;
+
+    if (original_piece == WHITE_KING &&
+        (move.from == 60 && (move.to == 62 || move.to == 58))) {
+        castling = true;
+    }
+    else if (original_piece == BLACK_KING &&
+            (move.from == 4 && (move.to == 6 || move.to == 2))) {
+        castling = true;
+    }
+
+    game->history[game->move_num].was_castling = castling;
+
+
+    // promotion
+
+    Piece piece = original_piece;
+
+    if (move.promotion != PROMOTE_NONE) {
+
+        if (piece == WHITE_PAWN) {
+
+            switch (move.promotion) {
+                case PROMOTE_QUEEN:
+                    piece = WHITE_QUEEN;
+                    break;
+
+                case PROMOTE_ROOK:
+                    piece = WHITE_ROOK;
+                    break;
+
+                case PROMOTE_BISHOP:
+                    piece = WHITE_BISHOP;
+                    break;
+
+                case PROMOTE_KNIGHT:
+                    piece = WHITE_KNIGHT;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        else if (piece == BLACK_PAWN) {
+
+            switch (move.promotion) {
+                case PROMOTE_QUEEN:
+                    piece = BLACK_QUEEN;
+                    break;
+
+                case PROMOTE_ROOK:
+                    piece = BLACK_ROOK;
+                    break;
+
+                case PROMOTE_BISHOP:
+                    piece = BLACK_BISHOP;
+                    break;
+
+                case PROMOTE_KNIGHT:
+                    piece = BLACK_KNIGHT;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+
+   // move peices
+    game->board[move.from / 8][move.from % 8] = EMPTY;
+
+    game->board[move.to / 8][move.to % 8] = piece;
+
+
+    // removed en passant campure
+
+    if (en_passant_capture) {
+
+        int direction =
+            (original_piece == WHITE_PAWN) ? -1 : 1;
+
+        int captured_y =
+            move.to / 8 - direction;
+
+        game->board[captured_y][move.to % 8] = EMPTY;
+    }
+
+
+    // move rook when castlin
+
+    if (castling) {
+
+        // White kingside
+        if (move.from == 60 && move.to == 62) {
+
+            game->board[7][5] =
+                game->board[7][7];
+
+            game->board[7][7] = EMPTY;
+        }
+
+        // White queenside
+        else if (move.from == 60 && move.to == 58) {
+
+            game->board[7][3] =
+                game->board[7][0];
+
+            game->board[7][0] = EMPTY;
+        }
+
+        // Black kingside
+        else if (move.from == 4 && move.to == 6) {
+
+            game->board[0][5] =
+                game->board[0][7];
+
+            game->board[0][7] = EMPTY;
+        }
+
+        // Black queenside
+        else if (move.from == 4 && move.to == 2) {
+
+            game->board[0][3] =
+                game->board[0][0];
+
+            game->board[0][0] = EMPTY;
+        }
+    }
+
+
+    //update the castling rights
+
+    // King moved
+    if (original_piece == WHITE_KING) {
+
+        game->castling.white_kingside = false;
+        game->castling.white_queenside = false;
+    }
+
+    else if (original_piece == BLACK_KING) {
+
+        game->castling.black_kingside = false;
+        game->castling.black_queenside = false;
+    }
+
+
+    // Rook moved
+    if (original_piece == WHITE_ROOK) {
+
+        if (move.from == 63)
+            game->castling.white_kingside = false;
+
+        else if (move.from == 56)
+            game->castling.white_queenside = false;
+    }
+
+    else if (original_piece == BLACK_ROOK) {
+
+        if (move.from == 7)
+            game->castling.black_kingside = false;
+
+        else if (move.from == 0)
+            game->castling.black_queenside = false;
+    }
+
+
+    // crook captured
+
+    if (captured_piece == WHITE_ROOK) {
+
+        if (move.to == 63)
+            game->castling.white_kingside = false;
+
+        else if (move.to == 56)
+            game->castling.white_queenside = false;
+    }
+
+    else if (captured_piece == BLACK_ROOK) {
+
+        if (move.to == 7)
+            game->castling.black_kingside = false;
+
+        else if (move.to == 0)
+            game->castling.black_queenside = false;
+    }
+
+
+    // update the en passant
+
+    game->en_passant = -1;
+
+
+    // White pawn moved two squares
+    if (original_piece == WHITE_PAWN &&
+        move.from / 8 == 6 &&
+        move.to / 8 == 4) {
+
+        game->en_passant = move.from - 8;
+    }
+
+
+    // Black pawn moved two squares
+    else if (original_piece == BLACK_PAWN && move.from / 8 == 1 && move.to / 8 == 3) {
+        game->en_passant = move.from + 8;
+    }
+
+
+    // change turn
+
+    game->turn = (game->turn == COLOUR_WHITE) ? COLOUR_BLACK : COLOUR_WHITE;
+
+    game->move_num++;
+
+    return true;
+}
+
+
+
 bool isChecked(Game *game, Colour colour){ // finds the given colours king and checks wether its square is being attacked
     Piece king = (colour == COLOUR_WHITE) ? WHITE_KING : BLACK_KING;
     for (int square = 0; square < 64; square++) {
@@ -384,8 +730,16 @@ void Reset_game(Game *game){
     game->state = GAME_IN_PROGRESS;
     game->move_num = 0;
 
+    game->castling.white_kingside = true;
+    game->castling.white_queenside = true;
+    game->castling.black_kingside = true;
+    game->castling.black_queenside = true;
+
+    game->en_passant = -1;
+
     init_board(game);
 }
+
 
 Game *Create_Game(void){
     Game *game = calloc(1, sizeof(Game));
@@ -411,16 +765,103 @@ bool Make_Move(Game *game, Move move){
 }
 
 void Undo_Move(Game *game){
-    MoveHistory history = game->history[game->move_num - 1];
+    if (game->move_num <= 0)
+        return;
+
+    MoveHistory history =
+        game->history[game->move_num - 1];
+
     Move move = history.move;
 
-    // Restore the original piece, not the promoted piece
-    game->board[move.from / 8][move.from % 8] = history.moved_piece;
 
-    // Restore whatever was captured
-    game->board[move.to / 8][move.to % 8] = history.captured_piece;
+    // restore previous game state
 
-    game->turn = history.previous_turn;
+    game->en_passant =
+        history.previous_en_passant;
+
+    game->castling =
+        history.previous_castling;
+
+    game->turn =
+        history.previous_turn;
+
+
+    // resotre moved piece
+
+    game->board[move.from / 8][move.from % 8] =
+        history.moved_piece;
+
+
+    // restore peices
+
+    game->board[move.to / 8][move.to % 8] =
+        history.captured_piece;
+
+
+    // undo en passant
+
+    if (history.was_en_passant) {
+
+        int direction =
+            (history.moved_piece == WHITE_PAWN)
+            ? -1
+            : 1;
+
+        int captured_y =
+            move.to / 8 - direction;
+
+        // Destination was originally empty
+        game->board[move.to / 8][move.to % 8] =
+            EMPTY;
+
+        // Put captured pawn back
+        game->board[captured_y][move.to % 8] =
+            history.captured_piece;
+    }
+
+
+    // undo castling
+
+    if (history.was_castling) {
+
+        // White kingside
+        if (move.from == 60 && move.to == 62) {
+
+            game->board[7][7] =
+                game->board[7][5];
+
+            game->board[7][5] = EMPTY;
+        }
+
+        // White queenside
+        else if (move.from == 60 && move.to == 58) {
+
+            game->board[7][0] =
+                game->board[7][3];
+
+            game->board[7][3] = EMPTY;
+        }
+
+        // Black kingside
+        else if (move.from == 4 && move.to == 6) {
+
+            game->board[0][7] =
+                game->board[0][5];
+
+            game->board[0][5] = EMPTY;
+        }
+
+        // Black queenside
+        else if (move.from == 4 && move.to == 2) {
+
+            game->board[0][0] =
+                game->board[0][3];
+
+            game->board[0][3] = EMPTY;
+        }
+    }
+
+
     game->move_num--;
 }
 

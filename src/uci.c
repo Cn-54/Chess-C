@@ -129,7 +129,8 @@ static void handle_position(Game *game, char *input){
     }
 }
 
-void UCI_Loop(Game *game){
+void *UCI_Loop(void *arg){
+    Game *game = arg;
     char input[4096];
 
     while (fgets(input, sizeof(input), stdin)) {
@@ -159,4 +160,5 @@ void UCI_Loop(Game *game){
             break;
         }
     }
+    return NULL;
 }

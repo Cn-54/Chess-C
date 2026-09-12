@@ -4,6 +4,7 @@
 #include "game.h"
 #include <stddef.h>
 
+extern volatile bool stop_requested;
 
 Move Think(Game *game);
 
