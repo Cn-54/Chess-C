@@ -259,6 +259,7 @@ static bool isCapture(Game *game, Move move){
 }
 
 int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth){
+    nodes++;
 
     int stand_pat = evaluate(game);
     if (depth == 0)
