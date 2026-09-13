@@ -3,12 +3,107 @@
 
 #include <limits.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 volatile bool stop_requested = false;
 
-#define DEPTH 2 // effective depth is DEPTH+1
-#define QUIESCENCE_DEPTH 6
+#define DEPTH 3 // effective depth is DEPTH+1
+#define QUIESCENCE_DEPTH 3
+
+#define MATE_SCORE 100000
+#define MATE_DISTANCE_SCALE 15
+
+static long long nodes = 0;
+
+static int pieceValue(Piece piece){ // holds the value of each peice
+    switch (piece) {
+        case WHITE_PAWN:
+        case BLACK_PAWN:
+            return 100;
+
+        case WHITE_KNIGHT:
+        case BLACK_KNIGHT:
+            return 320;
+
+        case WHITE_BISHOP:
+        case BLACK_BISHOP:
+            return 330;
+
+        case WHITE_ROOK:
+        case BLACK_ROOK:
+            return 500;
+
+        case WHITE_QUEEN:
+        case BLACK_QUEEN:
+            return 900;
+
+        case WHITE_KING:
+        case BLACK_KING:
+            return 20000;
+
+        default:
+            return 0;
+    }
+}
+
+static int moveScore(Game *game, Move move){
+    int score = 0;
+
+    Piece attacker =
+        game->board[move.from / 8][move.from % 8];
+
+    Piece victim =
+        game->board[move.to / 8][move.to % 8];
+
+    // Captures
+    if (victim != EMPTY) {
+        score += 10000 + pieceValue(victim) - pieceValue(attacker);
+    }
+
+    // Promotions
+    if (move.promotion != PROMOTE_NONE) {
+        score += 9000;
+
+        switch (move.promotion) {
+            case PROMOTE_QUEEN:
+                score += pieceValue(WHITE_QUEEN); // colour doesnt matter same value
+                break;
+            case PROMOTE_ROOK:
+                score += pieceValue((WHITE_ROOK));
+                break;
+            case PROMOTE_BISHOP:
+                score += pieceValue(WHITE_BISHOP);
+                break;
+            case PROMOTE_KNIGHT:
+                score += pieceValue(WHITE_KNIGHT);
+                break;
+            default:
+                break;
+        }
+    }
+
+    return score;
+}
+
+static void orderMoves(Game *game, MoveList *moves){ // Sort the moves list so better moves come first
+    for (size_t i = 1; i < moves->count; i++) {
+        Move current = moves->moves[i];
+        int currentScore = moveScore(game, current);
+
+        int j = i - 1;
+
+        while (j >= 0 &&
+               moveScore(game, moves->moves[j]) < currentScore) {
+
+            moves->moves[j + 1] = moves->moves[j];
+            j--;
+        }
+
+        moves->moves[j + 1] = current;
+    }
+}
 
 static const int pawn_table[8][8] = {
     {  0,   0,   0,   0,   0,   0,   0,   0},
@@ -99,46 +194,46 @@ int evaluate(Game *game){
 
                     switch (piece) {
                         case WHITE_PAWN:
-                            score += 100 + pawn_table[y][x];
+                            score += pieceValue(WHITE_PAWN) + pawn_table[y][x];
                             break;
 
                         case WHITE_KNIGHT:
-                            score += 320 + knight_table[y][x];
+                            score += pieceValue(WHITE_KNIGHT) + knight_table[y][x];
                             break;
 
                         case WHITE_BISHOP:
-                            score += 330 + bishop_table[y][x];
+                            score += pieceValue(WHITE_BISHOP) + bishop_table[y][x];
                             break;
 
                         case WHITE_ROOK:
-                            score += 500 + rook_table[y][x];
+                            score += pieceValue(WHITE_ROOK) + rook_table[y][x];
                             break;
 
                         case WHITE_QUEEN:
-                            score += 900 + queen_table[y][x];
+                            score += pieceValue(WHITE_QUEEN) + queen_table[y][x];
                             break;
                         case WHITE_KING:
                             score += king_table[y][x];
                             break;
 
                         case BLACK_PAWN:
-                            score -= 100 + pawn_table[7-y][x]; // 7-y flips the table for black
+                            score -= pieceValue(BLACK_PAWN) + pawn_table[7-y][x]; // 7-y flips the table for black
                             break;
 
                         case BLACK_KNIGHT:
-                            score -= 320 + knight_table[7-y][x];
+                            score -= pieceValue(BLACK_KNIGHT) + knight_table[7-y][x];
                             break;
 
                         case BLACK_BISHOP:
-                            score -= 330 + bishop_table[7-y][x];
+                            score -= pieceValue(BLACK_BISHOP) + bishop_table[7-y][x];
                             break;
 
                         case BLACK_ROOK:
-                            score -= 500 + rook_table[7-y][x];
+                            score -= pieceValue(BLACK_ROOK) + rook_table[7-y][x];
                             break;
 
                         case BLACK_QUEEN:
-                            score -= 900 + queen_table[7-y][x];
+                            score -= pieceValue(BLACK_QUEEN) + queen_table[7-y][x];
                             break;
                         case BLACK_KING:
                             score -= king_table[7-y][x];
@@ -154,12 +249,17 @@ int evaluate(Game *game){
 }
 
 static bool isCapture(Game *game, Move move){
-    return game->board[move.to / 8][move.to % 8] != EMPTY;
+    int to_y = move.to / 8;
+    int to_x = move.to % 8;
+
+    if (game->board[to_y][to_x] != EMPTY)
+        return true;
+
+    return move.to == game->en_passant; // allow en passant captures
 }
 
 int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth){
-    if (stop_requested)
-        return evaluate(game);
+
     int stand_pat = evaluate(game);
     if (depth == 0)
         return stand_pat;
@@ -179,8 +279,11 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth
     }
 
     MoveList moves = GenerateMoves(game);
+    orderMoves(game, &moves);
 
     for (size_t i = 0; i < moves.count; i++) {
+        if (stop_requested)
+            return evaluate(game);
         Move move = moves.moves[i];
 
         if (!isCapture(game, move))
@@ -234,7 +337,8 @@ bool isRepetition(Game *game){
     return false;
 }
 
-int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
+int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer,int piles){
+    nodes++;
     if (stop_requested)
         return evaluate(game);
     if (isRepetition(game)) return 0;
@@ -242,12 +346,13 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
         return quiescence(game, alpha, beta, maximizingPlayer, QUIESCENCE_DEPTH);
 
     MoveList moves = GenerateMoves(game);
+    orderMoves(game, &moves);
 
     if (maximizingPlayer){
 
         if (moves.count == 0){
             if (isChecked(game, COLOUR_WHITE)){
-                return INT_MIN;
+                return -MATE_SCORE + (piles * MATE_DISTANCE_SCALE);
             }
             return 0;
         }
@@ -257,8 +362,8 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
         for (size_t i = 0; i < moves.count; i++) {
 
             Make_Move(game, moves.moves[i]);
-
-            int score = minmax(game, depth - 1, alpha, beta, false);
+            
+            int score = minmax(game, depth - 1, alpha, beta, false,piles+1);
 
             Undo_Move(game);
 
@@ -277,7 +382,7 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
         if (moves.count == 0){
             if (isChecked(game, COLOUR_BLACK)){
-                return INT_MAX;
+                return MATE_SCORE - (piles * MATE_DISTANCE_SCALE);
             }
             return 0;
         }
@@ -287,7 +392,7 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, depth - 1, alpha, beta, true);
+            int score = minmax(game, depth - 1, alpha, beta, true,piles+1);
 
             Undo_Move(game);
 
@@ -305,6 +410,9 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer){
 
 
 Move Think(Game *game){
+    printf("info string turn=%d\n", game->turn);
+    fflush(stdout);
+    nodes = 0;
     MoveList moves = GenerateMoves(game);
 
     if (moves.count == 0)
@@ -319,7 +427,8 @@ Move Think(Game *game){
         for (size_t i = 0; i < moves.count; i++) {
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, false);
+            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, false,1);
+            
 
             Undo_Move(game);
 
@@ -330,6 +439,8 @@ Move Think(Game *game){
                 best_score = score;
                 best_move = moves.moves[i];
             }
+            printf("info nodes %lld score cp %d\n", nodes, score);
+            fflush(stdout);
         }
 
     } else {
@@ -339,7 +450,7 @@ Move Think(Game *game){
         for (size_t i = 0; i < moves.count; i++) {
             Make_Move(game, moves.moves[i]);
 
-            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, true);
+            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, true,1);
 
             Undo_Move(game);
 
@@ -350,8 +461,13 @@ Move Think(Game *game){
                 best_score = score;
                 best_move = moves.moves[i];
             }
+            printf("info nodes %lld score cp %d\n", nodes, score);
+            fflush(stdout);
         }
     }
+
+    printf("info string search complete nodes=%lld\n", nodes);
+    fflush(stdout);
 
     return best_move;
 }
