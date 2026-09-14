@@ -9,11 +9,11 @@
 
 volatile bool stop_requested = false;
 
-#define DEPTH 3 // effective depth is DEPTH+1
-#define QUIESCENCE_DEPTH 3
+#define DEPTH 5 // max depth
+#define QUIESCENCE_DEPTH 10
 
-#define MATE_SCORE 100000
-#define MATE_DISTANCE_SCALE 15
+#define MATE_SCORE 1000000
+#define MATE_DISTANCE_SCALE 20
 
 static long long nodes = 0;
 
@@ -59,12 +59,11 @@ static int moveScore(Game *game, Move move){
 
     // Captures
     if (victim != EMPTY) {
-        score += 10000 + pieceValue(victim) - pieceValue(attacker);
+        score += pieceValue(victim) - pieceValue(attacker);
     }
 
     // Promotions
     if (move.promotion != PROMOTE_NONE) {
-        score += 9000;
 
         switch (move.promotion) {
             case PROMOTE_QUEEN:
@@ -258,41 +257,67 @@ static bool isCapture(Game *game, Move move){
     return move.to == game->en_passant; // allow en passant captures
 }
 
-int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth){
+int quiescence(Game *game, int alpha, int beta,bool maximizingPlayer, int depth){
     nodes++;
 
+    if (stop_requested) return evaluate(game);
+
+    bool in_check = isChecked(game, game->turn);
     int stand_pat = evaluate(game);
-    if (depth == 0)
-        return stand_pat;
 
-    if (maximizingPlayer) {
-        if (stand_pat >= beta)
-            return beta;
+    if (!in_check) {
+        if (maximizingPlayer) {
+            if (stand_pat >= beta)
+                return beta;
 
-        if (stand_pat > alpha)
-            alpha = stand_pat;
-    } else {
-        if (stand_pat <= alpha)
-            return alpha;
+            if (stand_pat > alpha)
+                alpha = stand_pat;
+        }
+        else {
+            if (stand_pat <= alpha)
+                return alpha;
 
-        if (stand_pat < beta)
-            beta = stand_pat;
+            if (stand_pat < beta)
+                beta = stand_pat;
+        }
     }
 
+    if (depth == 0)
+        return in_check ? evaluate(game) :
+               (maximizingPlayer ? alpha : beta);
+
     MoveList moves = GenerateMoves(game);
+
+    if (moves.count == 0) {
+        if (in_check) {
+            if (game->turn == COLOUR_WHITE)
+                return -MATE_SCORE;
+            else
+                return MATE_SCORE;
+        }
+
+        return 0; // stalemate
+    }
+
     orderMoves(game, &moves);
 
     for (size_t i = 0; i < moves.count; i++) {
-        if (stop_requested)
-            return evaluate(game);
         Move move = moves.moves[i];
 
-        if (!isCapture(game, move))
+        if (!in_check &&
+            !isCapture(game, move) &&
+            move.promotion == PROMOTE_NONE)
             continue;
 
         Make_Move(game, move);
 
-        int score = quiescence(game,alpha,beta,!maximizingPlayer,depth-1);
+        int score = quiescence(
+            game,
+            alpha,
+            beta,
+            !maximizingPlayer,
+            depth - 1
+        );
 
         Undo_Move(game);
 
@@ -302,7 +327,8 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth
 
             if (alpha >= beta)
                 break;
-        } else {
+        }
+        else {
             if (score < beta)
                 beta = score;
 
@@ -313,6 +339,7 @@ int quiescence(Game *game, int alpha, int beta, bool maximizingPlayer, int depth
 
     return maximizingPlayer ? alpha : beta;
 }
+
 
 bool isRepetition(Game *game){
     if (game->move_num < 4)
@@ -375,7 +402,7 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer,int
                 break;
             }
         }
-
+        
         return maxEval;
     }
 
@@ -411,64 +438,57 @@ int minmax(Game *game, int depth, int alpha, int beta, bool maximizingPlayer,int
 
 
 Move Think(Game *game){
-    printf("info string turn=%d\n", game->turn);
-    fflush(stdout);
     nodes = 0;
-    MoveList moves = GenerateMoves(game);
 
-    if (moves.count == 0)
+    MoveList moves = GenerateMoves(game); // generates all legal moves
+
+    if (moves.count == 0) // if there are no moves then return
         return (Move){0};
+
+    Colour side = game->turn;
 
     Move best_move = moves.moves[0];
 
-    if (game->turn == COLOUR_WHITE) {
+    for (int depth = 1; depth <= DEPTH; depth++) { // iterative deepening
 
-        int best_score = INT_MIN;
+        int best_score = (side == COLOUR_WHITE) ? INT_MIN : INT_MAX;
 
-        for (size_t i = 0; i < moves.count; i++) {
-            Make_Move(game, moves.moves[i]);
+        Move depth_best_move = best_move;
 
-            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, false,1);
-            
+        for (size_t i = 0; i < moves.count; i++) { // for all possible moves
 
-            Undo_Move(game);
+            Make_Move(game, moves.moves[i]); // make the root move
 
-            if (stop_requested)
-                break;
+            int score = minmax( game,depth - 1,INT_MIN,INT_MAX,game->turn == COLOUR_WHITE,1); // evaulate the game from the root move
 
-            if (score > best_score) {
-                best_score = score;
-                best_move = moves.moves[i];
-            }
-            printf("info nodes %lld score cp %d\n", nodes, score);
-            fflush(stdout);
-        }
-
-    } else {
-
-        int best_score = INT_MAX;
-
-        for (size_t i = 0; i < moves.count; i++) {
-            Make_Move(game, moves.moves[i]);
-
-            int score = minmax(game, DEPTH, INT_MIN, INT_MAX, true,1);
-
-            Undo_Move(game);
+            Undo_Move(game); // undo that move
 
             if (stop_requested)
                 break;
 
-            if (score < best_score) {
-                best_score = score;
-                best_move = moves.moves[i];
+            if (side == COLOUR_WHITE) { // maximise for white
+                if (score > best_score) {
+                    best_score = score;
+                    depth_best_move = moves.moves[i];
+                }
             }
-            printf("info nodes %lld score cp %d\n", nodes, score);
-            fflush(stdout);
+            else { // minimise for black
+                if (score < best_score) {
+                    best_score = score;
+                    depth_best_move = moves.moves[i];
+                }
+            }
         }
+
+        if (stop_requested)
+            break;
+
+        best_move = depth_best_move;
+
+        printf("info depth %d score cp %d nodes %lld\n",
+               depth, best_score, nodes);
+        fflush(stdout);
     }
-
-    printf("info string search complete nodes=%lld\n", nodes);
-    fflush(stdout);
 
     return best_move;
 }
